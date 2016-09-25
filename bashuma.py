@@ -23,17 +23,17 @@ class MinHeap(Heap):
 		self[k] = self[0]
 
 	def AdjustDown(self,k):
-		self[0] = self[k]
 
+		self[0] = self[k]
 		i = 2 * k
 		while i <= len(self) - 1:
 			if i < len(self) - 1 and self[i+1] < self[i]:
 				i += 1
-			if self[i] >= self[0]:
-				break
-			else:
+			if self[i] < self[0]:
 				self[k] = self[i]
 				k = i
+			else:
+				break
 			i *= 2
 		self[k] = self[0]
 
@@ -43,7 +43,7 @@ class MinHeap(Heap):
 			self.pop()
 			return minstate
 
-
+		#print 'here'
 		self[1] = self[len(self) - 1]
 		self.pop()
 		self.AdjustDown(1)
@@ -60,6 +60,11 @@ class MinHeap(Heap):
 			if self[i] == s:
 				return self[i]
 		return None
+
+	def Empty(self):
+		if len(self) == 1:
+			return True
+		return False
 		
 class List(list):
 	def __init__(self):
@@ -81,27 +86,6 @@ class List(list):
 				return self[i]
 		return None
 
-
-#class Queue(list):
-#	def __init__(self):
-#		list.__init__(self)
-#	def Enqueue(self,s):
-#		self.append(s)
-#
-#	def Dequeue(self):
-#		return self.pop(0)
-#
-#	def Print(self):
-#		print 'count:%d' %(len(self))
-#		#FIFO
-#		for item in self:
-#			item.Print()
-#
-#	def Empty(self):
-#		if len(self) == 0:
-#			return True
-#		return False
-
 class State:
 	def __init__(self, zero_position, state_value):
 		self.state_value = List()
@@ -113,17 +97,18 @@ class State:
 		self.g = 0
 
 	def __lt__(self, state):
-		return self.f < state.f
-
-	def __le__(self, state):
-		return self.f <= state.f
+		if self.f < state.f:
+			return True
+		elif self.f == state.f:
+			#print self.f,state.f,self.g,state.g
+			#print self.state_value,state.state_value
+			return self.g < state.g
 
 	def __eq__(self, state):
 		for i in range(0, len(self.state_value)):
 			if self.state_value[i] != state.state_value[i]:
 				return False
 		return True
-			
 
 	def Copy(self, s):
 		while len(self.state_value) != 0:
@@ -136,9 +121,6 @@ class State:
 		self.state_value[j] = self.state_value[i] ^ self.state_value[j]
 		self.state_value[i] = self.state_value[i] ^ self.state_value[j]
 
-	def SetZeroPosition(self,zero):
-		self.zero_position = zero
-
 	def Print(self):
 		print self.state_value
 
@@ -148,22 +130,22 @@ def h(from_state, end_state):
 	evaluate_cost = 0
 	for pos in range(0, len(from_state.state_value)):
 		#不计算空格(即0)
-		if pos == 0:
+		if from_state.state_value[pos] == 0:
 			continue
 		
 		pos_i = GetIFromPosition(pos)
 		pos_j = GetJFromPosition(pos)
 
 		end_pos = GetPosInState(end_state, from_state.state_value[pos])
-		if end_pos == len(end_state.state_value):
-			print 'Error 没有找到位置'
-			exit
+		assert(end_pos != len(end_state.state_value))
 
 		end_pos_i = GetIFromPosition(end_pos)
 		end_pos_j = GetJFromPosition(end_pos)
 
-		evaluate_cost += abs(end_pos_i - pos_i ) + abs(end_pos_j - pos_j)
+		evaluate_cost = evaluate_cost + abs(end_pos_i - pos_i) + abs(end_pos_j - pos_j)
+		#print pos_i,pos_j,end_pos_i,end_pos_j,from_state.state_value[pos],end_state.state_value[end_pos],from_state.state_value
 
+	#print evaluate_cost
 	return evaluate_cost
 def GetPosInState(state, item):
 	for pos in range(0, len(state.state_value)):
@@ -208,7 +190,7 @@ def GetStateFromState(direction, state, next_state):
 	if new_i >= 1 and new_i <= N and new_j >= 1 and new_j <= N:
 		new_pos = GetNFromIJ(new_i, new_j)
 		next_state.ExchangeIJ(pos, new_pos)
-		next_state.SetZeroPosition(new_pos)
+		next_state.zero_position = new_pos
 		return True
 
 	return False
@@ -237,7 +219,8 @@ def Expand(from_state):
 def AStar(start_state, end_state, open_list,close_list):
 	#加入open表
 	open_list.Add(start_state)
-	while len(open_list) > 1:
+	#open_list小跟堆,第1状态从1开始
+	while open_list.Empty() == False:
 		#f最小
 		from_state = open_list.PopMin()
 		#加入close表，已经访问过
@@ -249,14 +232,16 @@ def AStar(start_state, end_state, open_list,close_list):
 		
 		#扩展状态
 		expand_list = Expand(from_state)
+		assert(len(expand_list) <= 4)
 		for next_state in expand_list:
 			#计算f
-			next_state.f = g(from_state, next_state) + h(next_state, end_state)
 			next_state.g = from_state.g + g(from_state, next_state)
+			next_state.f = next_state.g + h(next_state, end_state)
 			
 			if open_list.Has(next_state):
 				real_same_state = open_list.Get(next_state)
 				if real_same_state.g > next_state.g:
+					#print real_same_state.g, next_state.g
 					real_same_state.g = next_state.g
 					real_same_state.f = next_state.f
 					real_same_state.father = from_state
@@ -269,7 +254,6 @@ def AStar(start_state, end_state, open_list,close_list):
 					real_same_state.father = from_state
 					#加入open表从新计算他的扩展状态
 					open_list.Add(real_same_state)
-
 			else:
 				next_state.father = from_state
 				open_list.Add(next_state)
@@ -313,26 +297,64 @@ def PrintPath(state):
 #3阶 pos = (i-1) * N + j - 1
 # i = pos / N + 1 , j = pos % N + 1
 N = 3
-start_state = State(4, [2,8,3,1,0,4,7,6,5])
-start_state.f = 0
-end_state = State(4, [1,2,3,8,0,4,7,6,5])
+#start_state = State(4, [2,8,3,1,0,4,7,6,5])
+#end_state = State(4, [1,2,3,8,0,4,7,6,5])
+#open_list = MinHeap()
+#close_list = List()
+##call A*
+#end_state = AStar(start_state, end_state, open_list, close_list)
+##print path
+#PrintPath(end_state)
+##
+##
+#start_state = State(4,[1,5,2,4,0,3,6,7,8])
+#end_state = State(4,[1,2,3,4,0,5,6,7,8])
+#open_list = MinHeap()
+#close_list = List()
+##call A*
+#end_state = AStar(start_state, end_state, open_list, close_list)
+##print path
+#PrintPath(end_state)
+#
+#
+start_state = State(4,[7,2,4,5,0,6,8,3,1])
+end_state = State(0,[0,1,2,3,4,5,6,7,8])
 open_list = MinHeap()
 close_list = List()
-
 #call A*
 end_state = AStar(start_state, end_state, open_list, close_list)
 #print path
 PrintPath(end_state)
 
-
-start_state = State(4,[1,5,2,4,0,3,6,7,8])
-start_state.f = 0
-end_state = State(4,[1,2,3,4,0,5,6,7,8])
-open_list = MinHeap()
-close_list = List()
-
-#call A*
-end_state = AStar(start_state, end_state, open_list, close_list)
-#print path
-PrintPath(end_state)
-
+#s1 = State(-1, [])
+#s1.f = 1
+#s2 = State(-1, [])
+#s2.f = 2
+#s3 = State(-1, [])
+#s3.f = 3
+#s4 = State(-1, [])
+#s4.f = 4
+#s5 = State(-1, [])
+#s5.f = 5
+#s6 = State(-1, [])
+#s6.f = 0
+#s7 = State(-1, [])
+#s7.f = 0
+#
+#minh = MinHeap()
+#
+#minh.Add(s2)
+#minh.Add(s1)
+#minh.Add(s3)
+#minh.Add(s4)
+#
+#st = minh.PopMin()
+#print st.f
+#
+#minh.Add(s5)
+#minh.Add(s6)
+#minh.Add(s7)
+#
+#while False == minh.Empty():
+#	st = minh.PopMin()
+#	print st.f
