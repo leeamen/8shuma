@@ -16,7 +16,7 @@ class MinHeap(Heap):
 	def AdjustUp(self, k):
 		self[0] = self[k]
 		i = k / 2
-		while i > 0 and self[0] < self[i]:
+		while i > 0 and self[0] <= self[i]:
 			self[k] = self[i]
 			k = i
 			i = k / 2
@@ -55,16 +55,28 @@ class MinHeap(Heap):
 				return True
 		return False
 
-	def Get(self, s):
+	def Remove(self, s):
+		state = None
 		for i in range(1, len(self)):
 			if self[i] == s:
-				return self[i]
-		return None
+				state = self[i]
+				if i != len(self) - 1:
+					self[i] = self[len(self) - 1]
+					self.pop()
+					self.AdjustDown(i)
+				else:
+					self.pop()
+				break
+
+		return state
 
 	def Empty(self):
 		if len(self) == 1:
 			return True
 		return False
+
+	def Length(self):
+		return len(self) - 1
 		
 class List(list):
 	def __init__(self):
@@ -83,7 +95,7 @@ class List(list):
 	def Remove(self, s):
 		for i in range(0, len(self)):
 			if self[i] == s:
-				return self[i]
+				return self.pop(i)
 		return None
 
 class State:
@@ -102,7 +114,14 @@ class State:
 		elif self.f == state.f:
 			#print self.f,state.f,self.g,state.g
 			#print self.state_value,state.state_value
+			return self.g <= state.g
+		return False
+	def __le__(self,state):
+		if self.f < state.f:
+			return True
+		elif self.f == state.f:
 			return self.g < state.g
+		return False
 
 	def __eq__(self, state):
 		for i in range(0, len(self.state_value)):
@@ -218,6 +237,7 @@ def Expand(from_state):
 #A*算法dijstra
 def AStar(start_state, end_state, open_list,close_list):
 	#加入open表
+	maxlength = 0
 	open_list.Add(start_state)
 	#open_list小跟堆,第1状态从1开始
 	while open_list.Empty() == False:
@@ -228,6 +248,7 @@ def AStar(start_state, end_state, open_list,close_list):
 
 		#找到结束状态
 		if from_state == end_state:
+			print '#####open_list长度',maxlength
 			return from_state
 		
 		#扩展状态
@@ -239,12 +260,13 @@ def AStar(start_state, end_state, open_list,close_list):
 			next_state.f = next_state.g + h(next_state, end_state)
 			
 			if open_list.Has(next_state):
-				real_same_state = open_list.Get(next_state)
+				real_same_state = open_list.Remove(next_state)
 				if real_same_state.g > next_state.g:
-					#print real_same_state.g, next_state.g
+					print real_same_state.g, next_state.g
 					real_same_state.g = next_state.g
 					real_same_state.f = next_state.f
 					real_same_state.father = from_state
+					open_list.Add(real_same_state)
 			elif close_list.Has(next_state):
 				real_same_state = close_list.Remove(next_state)
 				if real_same_state.g > next_state.g:
@@ -255,6 +277,8 @@ def AStar(start_state, end_state, open_list,close_list):
 					#加入open表从新计算他的扩展状态
 					open_list.Add(real_same_state)
 			else:
+				if maxlength < open_list.Length():
+					maxlength = open_list.Length()
 				next_state.father = from_state
 				open_list.Add(next_state)
 
@@ -326,7 +350,7 @@ end_state = AStar(start_state, end_state, open_list, close_list)
 #print path
 PrintPath(end_state)
 
-#s1 = State(-1, [])
+es1 = State(-1, [])
 #s1.f = 1
 #s2 = State(-1, [])
 #s2.f = 2
@@ -338,8 +362,10 @@ PrintPath(end_state)
 #s5.f = 5
 #s6 = State(-1, [])
 #s6.f = 0
-#s7 = State(-1, [])
+#s6.g = 9
+#s7 = State(0, [])
 #s7.f = 0
+#s7.g = 9
 #
 #minh = MinHeap()
 #
@@ -349,7 +375,7 @@ PrintPath(end_state)
 #minh.Add(s4)
 #
 #st = minh.PopMin()
-#print st.f
+#print st.f,st.g
 #
 #minh.Add(s5)
 #minh.Add(s6)
@@ -357,4 +383,4 @@ PrintPath(end_state)
 #
 #while False == minh.Empty():
 #	st = minh.PopMin()
-#	print st.f
+#	print st.f,st.g,st.zero_position
