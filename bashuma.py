@@ -1,4 +1,4 @@
-#!/home/python/bin/python
+#!/usr/bin/python
 #coding:utf-8
 
 #class Heap(list):
@@ -220,6 +220,7 @@ def Expand(from_state):
 #A*算法dijstra
 def AStar(start_state, end_state, open_list,close_list):
   #加入open表
+  start_state.f = h(start_state, end_state)
   open_list.append(start_state)
   #open_list小跟堆,第1状态从1开始
   while open_list.Empty() == False:
@@ -227,7 +228,6 @@ def AStar(start_state, end_state, open_list,close_list):
     from_state = open_list.PopMin()
     #加入close表，已经访问过
     close_list.append(from_state)
-
     #找到结束状态
     if from_state == end_state:
       print '#####close_list长度',close_list.Length()
@@ -240,6 +240,9 @@ def AStar(start_state, end_state, open_list,close_list):
       #计算f
       next_state.g = from_state.g + g(from_state, next_state)
       next_state.f = next_state.g + h(next_state, end_state)
+    #  print 'from_state:%d,next_state:%d'%(from_state.f, next_state.f)
+    #  if next_state.f > from_state.f:
+    #    continue
 
       if next_state in open_list:
         idx = open_list.index(next_state)
@@ -249,7 +252,6 @@ def AStar(start_state, end_state, open_list,close_list):
           real_same_state.g = next_state.g
           real_same_state.f = next_state.f
           real_same_state.father = from_state
-
       elif next_state in close_list:
         idx = close_list.index(next_state)
         real_same_state = close_list[idx]
@@ -268,13 +270,16 @@ def AStar(start_state, end_state, open_list,close_list):
   return None
 
 def PrintPath(state):
+  if state is None:
+    print '搜索失败'
+    return
   global N
   a = List()
-  while state:
+  while state is not None:
     a.insert(0, state.state_value)
     state = state.father
-
   print '####变换如下:###'
+  print len(a)
   i = 0
   print a[0]
   while i < N:
